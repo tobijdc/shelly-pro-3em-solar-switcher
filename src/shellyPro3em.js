@@ -9,20 +9,72 @@ globalThis.RELAY_COOLDOWN = 5 * 60 * 1000; // Relay cooldown time in millisecond
 globalThis.POSITIVE_THRESHOLD = DEVICE_ENERGY_USE + BUFFER;
 
 // State variables
-globalThis.lastRelaySwitchTime = 0; // Timestamp of the last relay switch
+globalThis.lastRelaySwitchTime = 0;      // Timestamp of the last relay switch
+globalThis.lastStateTransitionTime = 0;  // Timestamp of the last state transition
+globalThis.state = "NO_EXCESS_ENERGY_OFF"; // Initial state
 
-// Function to handle relay switching based on total energy
-function controlRelay(totalEnergy, currentTime) {
+// Method to transition to a new state, logging the transition and updating the transition time
+function transitionToState(newState) {
+  const currentTime = Date.now();
+  globalThis.lastStateTransitionTime = currentTime;
+  globalThis.state = newState;
+  console.log(`Transition to ${newState} at ${new Date(currentTime).toISOString()}`);
+}
+
+// Method to switch the relay on or off and update the last relay switch time
+function switchRelay(isOn) {
+  const currentTime = Date.now();
+  Shelly.call("Switch.Set", { id: 0, on: isOn });
+  globalThis.lastRelaySwitchTime = currentTime;
+  console.log(`Relay switched ${isOn ? "ON" : "OFF"} at ${new Date(currentTime).toISOString()}`);
+}
+
+// State machine to control the relay
+function controlRelayStateMachine(totalEnergy, currentTime) {
   const timeSinceLastSwitch = currentTime - lastRelaySwitchTime;
 
-  if (totalEnergy <= NEGATIVE_THRESHOLD && timeSinceLastSwitch >= RELAY_COOLDOWN) {
-    Shelly.call("Switch.Set", { id: 0, on: true });
-    lastRelaySwitchTime = currentTime;
-    console.log(`Relay switched ON at ${new Date(currentTime).toISOString()}`);
-  } else if (totalEnergy >= POSITIVE_THRESHOLD && timeSinceLastSwitch >= RELAY_COOLDOWN) {
-    Shelly.call("Switch.Set", { id: 0, on: false });
-    lastRelaySwitchTime = currentTime;
-    console.log(`Relay switched OFF at ${new Date(currentTime).toISOString()}`);
+  switch (state) {
+    case "EXCESS_ENERGY_ON":
+      if (totalEnergy >= POSITIVE_THRESHOLD) {
+        // No excess energy, switch off and enter cooldown
+        switchRelay(false);
+        transitionToState("HOLD_PHASE_OFF");
+      }
+      break;
+
+    case "NO_EXCESS_ENERGY_OFF":
+      if (totalEnergy <= NEGATIVE_THRESHOLD) {
+        // Excess energy detected, switch on and enter cooldown
+        switchRelay(true);
+        transitionToState("HOLD_PHASE_ON");
+      }
+      break;
+
+    case "HOLD_PHASE_ON":
+      if (timeSinceLastSwitch >= RELAY_COOLDOWN) {
+        if (totalEnergy >= POSITIVE_THRESHOLD) {
+          // Cooldown over, no excess energy, go back to OFF state
+          switchRelay(false);
+          transitionToState("HOLD_PHASE_OFF");
+        } else {
+          // Cooldown over, and excess energy still available, switch to ON
+          transitionToState("EXCESS_ENERGY_ON");
+        }
+      }
+      break;
+
+    case "HOLD_PHASE_OFF":
+      if (timeSinceLastSwitch >= RELAY_COOLDOWN) {
+        if (totalEnergy <= NEGATIVE_THRESHOLD) {
+          // Cooldown over, excess energy detected again, switch back to ON
+          switchRelay(true);
+          transitionToState("HOLD_PHASE_ON");
+        } else {
+          // Cooldown over, still no excess energy, remain OFF
+          transitionToState("NO_EXCESS_ENERGY_OFF");
+        }
+      }
+      break;
   }
 }
 
@@ -35,7 +87,7 @@ function mainLoop() {
     }
     const totalEnergy = result.total_energy;
     console.log(`Total energy: ${totalEnergy}`);
-    controlRelay(totalEnergy, Date.now());
+    controlRelayStateMachine(totalEnergy, Date.now());
   });
 }
 
@@ -43,6 +95,6 @@ function mainLoop() {
 Timer.set(MAIN_LOOP_INTERVAL, true, mainLoop);
 
 // Attach controlRelay to globalThis for test access
-globalThis.controlRelay = controlRelay;
+globalThis.controlRelay = controlRelayStateMachine;
 
 console.log("Shelly Pro 3EM energy management script started.");

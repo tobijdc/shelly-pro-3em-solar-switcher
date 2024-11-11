@@ -6,7 +6,7 @@ Very very work in progress.
 
 TODO:
 
-- [ ] Refactor everything to be more state machine like
+- [x] Refactor everything to be more state machine like
 - [ ] Allow for time based override (i plan to use this for warm water, I want warm water also if there is no sunshine)
 - [ ] Make the script more configurable
 
