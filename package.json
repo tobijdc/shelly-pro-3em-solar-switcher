@@ -1,6 +1,6 @@
 {
   "name": "shelly-pro-3em-solar-switcher",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Script for the pro 3EM with the relay addon to switch loads if there is enough energy available (by for example Solar)",
   "main": "index.js",
   "scripts": {
@@ -10,5 +10,8 @@
   "license": "MIT",
   "devDependencies": {
     "jest": "^29.7.0"
+  },
+  "dependencies": {
+    "shelly-pro-3em-solar-switcher": "file:"
   }
 }

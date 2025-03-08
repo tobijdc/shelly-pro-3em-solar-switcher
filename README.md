@@ -1,8 +1,9 @@
 # Shelly Pro 3EM Solar Switcher
 
-Very very work in progress.
+Very work in progress.
 
-:warning: Untested on actual device!
+Run on actual device!
+(but no guarantee it fully works!)
 
 TODO:
 
