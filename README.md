@@ -30,6 +30,7 @@ Runs on actual device!
 - [ ] Create event based version (power change) and compare to timer based approach :watch:
 - [ ] Allow for time based overrides (always on during / do not run script during) :moon:
 - [ ] Access the history of measurements to switch only if value was reached for more than one internal
+- [ ] Read Switch state on script start and set starting state accordingly
 
 ### Possible extensions
 
