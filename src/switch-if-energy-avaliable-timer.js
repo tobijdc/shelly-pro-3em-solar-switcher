@@ -1,13 +1,18 @@
+// We do not want to override "globalThis" in the testing case
 if (Shelly.getCurrentScriptId() !== "testingWorkaround") {
   let globalThis = { }
 }
 
+// Device Configuration
+globalThis.EM_ID = 0; // Is 0 for "PRO 3 EM"
+globalThis.SWITCH_ID = 100; // Ids for Addons start with 100
+
 // Configuration variables set as global properties for test access
-globalThis.NEGATIVE_THRESHOLD = -250; // Configurable negative threshold in Watts (e.g., -100W)
-globalThis.DEVICE_ENERGY_USE = 1800;   // Configurable estimated energy use in Watts for the relay-controlled device
+globalThis.NEGATIVE_THRESHOLD = -250; // Configurable negative threshold in Watts (e.g., -200W)
+globalThis.DEVICE_ENERGY_USE = 1950;   // Configurable estimated energy use in Watts for the relay-controlled device
 globalThis.BUFFER = 100;              // Configurable buffer in Watts to prevent frequent switching
 globalThis.MAIN_LOOP_INTERVAL = 30 * 1000; // Main loop interval in milliseconds (30 seconds)
-globalThis.RELAY_COOLDOWN = 2 * 60 * 1000; // Relay cooldown time in milliseconds (5 minutes)
+globalThis.RELAY_COOLDOWN = 2 * 60 * 1000; // Relay cooldown (time where Relay will not be switched) time in milliseconds (5 minutes)
 
 // Calculated positive threshold as global
 globalThis.POSITIVE_THRESHOLD = globalThis.DEVICE_ENERGY_USE + globalThis.BUFFER;
@@ -29,7 +34,7 @@ function transitionToState(newState) {
 // Method to switch the relay on or off and update the last relay switch time
 function switchRelay(isOn) {
   const currentTime = Date.now();
-  Shelly.call("Switch.Set", { id: 0, on: isOn });
+  Shelly.call("Switch.Set", { id: globalThis.SWITCH_ID, on: isOn });
   globalThis.lastRelaySwitchTime = currentTime;
   console.log("Relay switched ", isOn ? "ON" : "OFF");
   console.log("at ", new Date(currentTime).toISOString());
@@ -38,7 +43,6 @@ function switchRelay(isOn) {
 // State machine to control the relay
 function controlRelayStateMachine(totalEnergy, currentTime) {
   const timeSinceLastSwitch = currentTime - globalThis.lastRelaySwitchTime;
-  console.log("Swüütsch");
 
   switch (globalThis.state) {
     case "EXCESS_ENERGY_ON":
@@ -87,7 +91,7 @@ function controlRelayStateMachine(totalEnergy, currentTime) {
 
 // Main loop function
 function mainLoop() {
-  Shelly.call("EM.GetStatus", { id: 0 }, function (result, error, message) {
+  Shelly.call("EM.GetStatus", { id: globalThis.EM_ID }, function (result, error, message) {
     if (error) {
       console.log("[Error] Fetching energy data:", error);
       return;
@@ -97,7 +101,7 @@ function mainLoop() {
     }
     const totalEnergy = result.total_act_power;
     console.log("Total energy: ", totalEnergy );
-    console.log("Current State:  ", globalThis.state);
+    console.log("Current State: ", globalThis.state);
     controlRelayStateMachine(totalEnergy, Date.now());
   });
 }
@@ -108,8 +112,12 @@ Timer.set(globalThis.MAIN_LOOP_INTERVAL, true, mainLoop);
 // Attach controlRelay to globalThis for test access
 globalThis.controlRelayStateMachine = controlRelayStateMachine;
 
+// We need to export the the method "controlRelayStateMachine" for tests.
+// "Shelly.getCurrentScriptId()" is one of few element that will be available on the device
+// As the device does not know "module.exports", we use the function result to prevent the
+// regular script from accessing the following line and only load this for testing.
 if (Shelly.getCurrentScriptId() === "testingWorkaround") {
   module.exports = { controlRelayStateMachine };
 }
 
-console.log("Shelly Pro 3EM energy management script started.", Shelly.getCurrentScriptId());
+console.log("Shelly Pro 3EM energy management script started. Script-Id:", Shelly.getCurrentScriptId());

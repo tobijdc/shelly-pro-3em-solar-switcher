@@ -10,7 +10,7 @@ global.console = {
   log: jest.fn()
 };
 
-require('../shellyPro3em.js'); // Load the script file
+require('../switch-if-energy-avaliable-timer.js'); // Load the script file
 
 describe("Shelly Pro 3EM energy management script", () => {
   beforeEach(() => {
@@ -28,7 +28,7 @@ describe("Shelly Pro 3EM energy management script", () => {
 
     controlRelayStateMachine(totalEnergy, currentTime);
 
-    expect(Shelly.call).toHaveBeenCalledWith("Switch.Set", { id: 0, on: true });
+    expect(Shelly.call).toHaveBeenCalledWith("Switch.Set", { id: globalThis.SWITCH_ID, on: true });
     expect(globalThis.state).toEqual("HOLD_PHASE_ON");
   });
 
@@ -40,7 +40,7 @@ describe("Shelly Pro 3EM energy management script", () => {
 
     controlRelayStateMachine(totalEnergy, currentTime);
 
-    expect(Shelly.call).toHaveBeenCalledWith("Switch.Set", { id: 0, on: true });
+    expect(Shelly.call).toHaveBeenCalledWith("Switch.Set", { id: globalThis.SWITCH_ID, on: true });
     expect(globalThis.state).toEqual("HOLD_PHASE_ON");
   });
 
@@ -52,7 +52,7 @@ describe("Shelly Pro 3EM energy management script", () => {
 
     controlRelayStateMachine(totalEnergy, currentTime);
 
-    expect(Shelly.call).toHaveBeenCalledWith("Switch.Set", { id: 0, on: false });
+    expect(Shelly.call).toHaveBeenCalledWith("Switch.Set", { id: globalThis.SWITCH_ID, on: false });
     expect(globalThis.state).toEqual("HOLD_PHASE_OFF");
   });
 
@@ -64,7 +64,7 @@ describe("Shelly Pro 3EM energy management script", () => {
 
     controlRelayStateMachine(totalEnergy, currentTime);
 
-    expect(Shelly.call).toHaveBeenCalledWith("Switch.Set", { id: 0, on: false });
+    expect(Shelly.call).toHaveBeenCalledWith("Switch.Set", { id: globalThis.SWITCH_ID, on: false });
     expect(globalThis.state).toEqual("HOLD_PHASE_OFF");
   });
 
