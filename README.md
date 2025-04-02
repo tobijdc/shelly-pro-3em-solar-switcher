@@ -24,13 +24,13 @@ Runs on actual device!
 - [x] Refactor everything to be more state machine like (for easier reasoning)
 - [x] Make the script more configurable
 - [x] Script can be used unmodified on device and for testing
+- [x] Read Switch state on script start and set starting state accordingly
 
 ### Todo :clipboard:
 
 - [ ] Create event based version (power change) and compare to timer based approach :watch:
 - [ ] Allow for time based overrides (always on during / do not run script during) :moon:
 - [ ] Access the history of measurements to switch only if value was reached for more than one interval
-- [ ] Read Switch state on script start and set starting state accordingly
 - [ ] Allow Threshold to be a function, based on time of day
 
 ### Possible extensions

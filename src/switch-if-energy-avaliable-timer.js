@@ -8,19 +8,37 @@ globalThis.EM_ID = 0; // Is 0 for "PRO 3 EM"
 globalThis.SWITCH_ID = 100; // Ids for Addons start with 100
 
 // Configuration variables set as global properties for test access
-globalThis.NEGATIVE_THRESHOLD = -250; // Configurable negative threshold in Watts (e.g., -200W)
-globalThis.DEVICE_ENERGY_USE = 1950;   // Configurable estimated energy use in Watts for the relay-controlled device
+globalThis.NEGATIVE_THRESHOLD = -350; // Configurable negative threshold in Watts (e.g., -300W)
+globalThis.DEVICE_ENERGY_USE = 1900;   // Configurable estimated energy use in Watts for the relay-controlled device
 globalThis.BUFFER = 100;              // Configurable buffer in Watts to prevent frequent switching
 globalThis.MAIN_LOOP_INTERVAL = 30 * 1000; // Main loop interval in milliseconds (30 seconds)
-globalThis.RELAY_COOLDOWN = 2 * 60 * 1000; // Relay cooldown (time where Relay will not be switched) time in milliseconds (5 minutes)
+globalThis.RELAY_COOLDOWN = 2 * 60 * 1000; // Relay cooldown (time where Relay will not be switched) time in milliseconds (2 minutes)
 
 // Calculated positive threshold as global
-globalThis.POSITIVE_THRESHOLD = globalThis.DEVICE_ENERGY_USE + globalThis.BUFFER;
+globalThis.POSITIVE_THRESHOLD = globalThis.DEVICE_ENERGY_USE + globalThis.NEGATIVE_THRESHOLD + globalThis.BUFFER;
 
 // State variables
 globalThis.lastRelaySwitchTime = 0;      // Timestamp of the last relay switch
 globalThis.lastStateTransitionTime = 0;  // Timestamp of the last state transition
 globalThis.state = "NO_EXCESS_ENERGY_OFF"; // Initial state
+
+// The state machine should be initialized to the correct state on bootup, depending on the initial state of switch
+function setInitialState() {
+  Shelly.call("Switch.GetStatus", { id: globalThis.SWITCH_ID }, function (result, error, message) {
+    if (error) {
+      console.log("[Error] Fetching switch data:", error);
+      return;
+    } else if (result === undefined || result.output === undefined) {
+      console.log("[Error] Switch result was undefined, but no error!");
+      return;
+    }
+    if (result.output) {
+      globalThis.state = "EXCESS_ENERGY_ON";
+      console.log("Switch was on. Setting initial state to ", globalThis.state);
+      console.log("at ", new Date(Date.now()).toISOString());
+    }
+  });
+}
 
 // Method to transition to a new state, logging the transition and updating the transition time
 function transitionToState(newState) {
@@ -106,6 +124,8 @@ function mainLoop() {
   });
 }
 
+setInitialState();
+
 // Timer to run the main loop at a configured interval
 Timer.set(globalThis.MAIN_LOOP_INTERVAL, true, mainLoop);
 
@@ -121,3 +141,5 @@ if (Shelly.getCurrentScriptId() === "testingWorkaround") {
 }
 
 console.log("Shelly Pro 3EM energy management script started. Script-Id:", Shelly.getCurrentScriptId());
+console.log("NEGATIVE_THRESHOLD:", globalThis.NEGATIVE_THRESHOLD);
+console.log("POSITIVE_THRESHOLD:", globalThis.POSITIVE_THRESHOLD);
